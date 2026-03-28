@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>Pour ma rêveuse</title>
+  <link rel="manifest" href="manifest.json"/>
+  <meta name="theme-color" content="#534AB7"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+  <meta name="apple-mobile-web-app-title" content="Rêveuse"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --purple: #534AB7;
+      --purple-light: #EEEDFE;
+      --purple-mid: #AFA9EC;
+      --purple-dark: #3C3489;
+      --teal: #1D9E75;
+      --teal-light: #E1F5EE;
+      --coral: #D85A30;
+      --coral-light: #FAECE7;
+      --amber: #BA7517;
+      --amber-light: #FAEEDA;
+      --pink-light: #FBEAF0;
+      --pink: #993556;
+      --text: #1a1a2e;
+      --text-sub: #6b6b80;
+      --text-hint: #a0a0b0;
+      --bg: #f7f6ff;
+      --card: #ffffff;
+      --border: rgba(83,74,183,0.12);
+      --border-hover: rgba(83,74,183,0.25);
+      --radius: 16px;
+      --radius-sm: 10px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text: #e8e6ff;
+        --text-sub: #9994cc;
+        --text-hint: #6660a0;
+        --bg: #0f0e1a;
+        --card: #1a1828;
+        --border: rgba(175,169,236,0.15);
+        --border-hover: rgba(175,169,236,0.3);
+        --purple-light: #1e1b3a;
+        --teal-light: #0a2018;
+        --coral-light: #2a1208;
+        --amber-light: #221508;
+        --pink-light: #1e0e18;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      padding: 3rem 1.5rem 1rem;
+      background: linear-gradient(160deg, var(--purple-light) 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-row { display: flex; align-items: flex-start; justify-content: space-between; }
+    .app-title { font-family: 'Fraunces', serif; font-size: 28px; font-weight: 500; color: var(--purple); line-height: 1.1; }
+    .app-title em { font-style: italic; }
+    .app-sub { font-size: 13px; color: var(--text-sub); margin-top: 4px; }
+    .avatar { width: 42px; height: 42px; border-radius: 50%; background: var(--purple); display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', serif; font-size: 16px; color: white; border: 2px solid var(--purple-mid); }
+    .role-toggle { display: flex; gap: 6px; margin-top: 1rem; }
+    .role-btn { padding: 5px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; background: var(--card); color: var(--text-sub); transition: all 0.15s; }
+    .role-btn.active { background: var(--purple); color: white; border-color: var(--purple); font-weight: 500; }
+
+    /* ── STATS ── */
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 1rem 1.5rem; }
+    .stat { background: var(--card); border-radius: var(--radius-sm); border: 1px solid var(--border); padding: 0.75rem; text-align: center; }
+    .stat-n { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 500; color: var(--purple); }
+    .stat-l { font-size: 11px; color: var(--text-hint); margin-top: 1px; }
+
+    /* ── SYNC STATUS ── */
+    .sync-bar { margin: 0 1.5rem 0.5rem; padding: 7px 12px; border-radius: var(--radius-sm); font-size: 12px; display: flex; align-items: center; gap: 6px; }
+    .sync-bar.connected { background: var(--teal-light); color: var(--teal); }
+    .sync-bar.offline { background: var(--amber-light); color: var(--amber); }
+    .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .sync-dot.pulse { animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    /* ── SECTION ── */
+    .section-label { font-size: 11px; font-weight: 500; color: var(--text-hint); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 1.5rem; margin: 1rem 0 6px; }
+
+    /* ── CARDS ── */
+    .list { padding: 0 1.5rem; display: flex; flex-direction: column; gap: 8px; padding-bottom: 6rem; }
+    .card {
+      background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);
+      padding: 0.9rem 1rem; display: flex; align-items: flex-start; gap: 12px;
+      transition: transform 0.12s, border-color 0.12s;
+      animation: slideIn 0.2s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+    .card:active { transform: scale(0.98); }
+    .card-icon { width: 40px; height: 40px; border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .card-body { flex: 1; min-width: 0; }
+    .card-title { font-size: 15px; font-weight: 500; color: var(--text); line-height: 1.3; }
+    .card-title.done { text-decoration: line-through; opacity: 0.45; }
+    .card-meta { font-size: 12px; color: var(--text-hint); margin-top: 3px; }
+    .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 20px; margin-top: 5px; }
+    .b-urgent { background: var(--coral-light); color: var(--coral); }
+    .b-today { background: var(--teal-light); color: var(--teal); }
+    .b-soon { background: var(--amber-light); color: var(--amber); }
+    .b-flash { background: var(--purple-light); color: var(--purple); }
+    .b-doux { background: var(--pink-light); color: var(--pink); }
+    .check {
+      width: 24px; height: 24px; border-radius: 50%; border: 1.5px solid var(--border-hover);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 2px;
+      cursor: pointer; transition: all 0.18s; background: transparent;
+    }
+    .check.done { background: var(--teal); border-color: var(--teal); }
+    .check.done::after { content: ''; display: block; width: 6px; height: 11px; border: 2px solid white; border-top: none; border-left: none; transform: rotate(45deg) translate(-1px,-1px); }
+
+    /* ── EMPTY ── */
+    .empty { text-align: center; padding: 3rem 2rem; color: var(--text-hint); }
+    .empty-icon { font-size: 40px; margin-bottom: 12px; opacity: 0.5; }
+    .empty-text { font-size: 14px; line-height: 1.6; }
+
+    /* ── FAB ── */
+    .fab {
+      position: fixed; bottom: 2rem; right: 1.5rem;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: var(--purple); border: none; color: white;
+      font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 20px rgba(83,74,183,0.4);
+      transition: transform 0.15s, background 0.15s;
+      z-index: 50;
+    }
+    .fab:active { transform: scale(0.93); background: var(--purple-dark); }
+
+    /* ── MODAL ── */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(15,14,26,0.5);
+      display: flex; align-items: flex-end; justify-content: center;
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .sheet {
+      background: var(--card); border-radius: 24px 24px 0 0;
+      padding: 1.25rem 1.5rem 2.5rem; width: 100%; max-width: 480px;
+      border: 1px solid var(--border); border-bottom: none;
+      transform: translateY(100%); transition: transform 0.25s cubic-bezier(0.34,1.3,0.64,1);
+    }
+    .overlay.open .sheet { transform: none; }
+    .sheet-handle { width: 36px; height: 4px; border-radius: 2px; background: var(--border-hover); margin: 0 auto 1.2rem; }
+    .sheet-title { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 500; color: var(--text); margin-bottom: 1rem; }
+
+    .type-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+    .type-btn { padding: 6px 13px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; cursor: pointer; background: var(--card); color: var(--text-sub); font-family: 'DM Sans', sans-serif; transition: all 0.12s; }
+    .type-btn.sel { background: var(--purple); color: white; border-color: var(--purple); font-weight: 500; }
+
+    .field { margin-bottom: 12px; }
+    .field label { font-size: 12px; color: var(--text-sub); display: block; margin-bottom: 5px; font-weight: 500; }
+    .field textarea, .field select {
+      width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 10px 12px; font-size: 15px; font-family: 'DM Sans', sans-serif;
+      background: var(--bg); color: var(--text); resize: none; outline: none;
+      transition: border-color 0.15s;
+    }
+    .field textarea { min-height: 80px; line-height: 1.5; }
+    .field textarea:focus, .field select:focus { border-color: var(--purple-mid); }
+
+    .actions { display: flex; gap: 8px; margin-top: 1rem; }
+    .btn-cancel { flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; cursor: pointer; color: var(--text-sub); font-size: 14px; font-family: 'DM Sans', sans-serif; }
+    .btn-send { flex: 2; padding: 12px; border-radius: var(--radius-sm); background: var(--purple); color: white; border: none; font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.12s; }
+    .btn-send:active { background: var(--purple-dark); }
+
+    /* ── CONFIG ── */
+    .config-note { font-size: 12px; color: var(--text-hint); background: var(--purple-light); border-radius: var(--radius-sm); padding: 8px 12px; line-height: 1.5; margin-bottom: 1rem; }
+    .config-note a { color: var(--purple); }
+    .config-field { margin-bottom: 10px; }
+    .config-field label { font-size: 12px; color: var(--text-sub); display: block; margin-bottom: 4px; font-weight: 500; }
+    .config-field input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 10px; font-size: 13px; font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); outline: none; }
+    .config-field input:focus { border-color: var(--purple-mid); }
+    .btn-config-save { width: 100%; padding: 10px; border-radius: var(--radius-sm); background: var(--purple); color: white; border: none; font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-top: 4px; }
+
+    /* ── FLASHCARD VIEW ── */
+    .fc-view { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 200; padding: 2rem 1.5rem; flex-direction: column; align-items: center; justify-content: center; }
+    .fc-view.open { display: flex; }
+    .fc-card { background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); width: 100%; max-width: 340px; padding: 2.5rem 2rem; text-align: center; cursor: pointer; transition: transform 0.15s; }
+    .fc-card:active { transform: scale(0.97); }
+    .fc-question { font-family: 'Fraunces', serif; font-size: 22px; color: var(--text); line-height: 1.4; }
+    .fc-answer { font-size: 16px; color: var(--text-sub); margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); display: none; line-height: 1.6; }
+    .fc-answer.show { display: block; }
+    .fc-hint { font-size: 12px; color: var(--text-hint); margin-top: 1.5rem; }
+    .fc-close { position: absolute; top: 1.5rem; right: 1.5rem; font-size: 24px; cursor: pointer; color: var(--text-sub); background: none; border: none; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-row">
+    <div>
+      <div class="app-title">Pour ma <em>rêveuse</em> 💜</div>
+      <div class="app-sub" id="app-sub">Rappels & flashcards</div>
+    </div>
+    <div class="avatar" id="avatar-btn" style="cursor:pointer" title="Paramètres">⚙</div>
+  </div>
+  <div class="role-toggle">
+    <button class="role-btn active" id="role-sender" onclick="setRole('sender')">Moi (Dylan)</button>
+    <button class="role-btn" id="role-receiver" onclick="setRole('receiver')">Elle</button>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat"><div class="stat-n" id="s-total">0</div><div class="stat-l">total</div></div>
+  <div class="stat"><div class="stat-n" id="s-done">0</div><div class="stat-l">faits ✓</div></div>
+  <div class="stat"><div class="stat-n" id="s-flash">0</div><div class="stat-l">flashcards</div></div>
+</div>
+
+<!-- SYNC STATUS -->
+<div class="sync-bar offline" id="sync-bar">
+  <div class="sync-dot pulse" id="sync-dot"></div>
+  <span id="sync-text">Mode local — configurez Firebase pour la synchro</span>
+</div>
+
+<!-- LISTE -->
+<div class="section-label">En attente</div>
+<div class="list" id="list-pending"></div>
+<div class="section-label" id="done-label" style="display:none">Fait ✓</div>
+<div class="list" id="list-done" style="padding-top:0"></div>
+
+<!-- FAB -->
+<button class="fab" id="fab-btn">+</button>
+
+<!-- MODAL NOUVEAU RAPPEL -->
+<div class="overlay" id="modal-new">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Nouveau message</div>
+    <div class="type-row" id="type-row">
+      <button class="type-btn sel" data-t="rappel">🔔 Rappel</button>
+      <button class="type-btn" data-t="tache">✅ Tâche</button>
+      <button class="type-btn" data-t="flashcard">🃏 Flashcard</button>
+      <button class="type-btn" data-t="doux">💜 Mot doux</button>
+    </div>
+    <div class="field">
+      <label id="msg-label">Message</label>
+      <textarea id="inp-msg" placeholder="Ex : N'oublie pas de rappeler la CAF aujourd'hui 💙" rows="3"></textarea>
+    </div>
+    <div class="field" id="field-answer" style="display:none">
+      <label>Réponse (verso de la flashcard)</label>
+      <textarea id="inp-answer" placeholder="La réponse ou l'explication..." rows="2"></textarea>
+    </div>
+    <div class="field" id="field-urg">
+      <label>Urgence</label>
+      <select id="inp-urg">
+        <option value="today">Aujourd'hui</option>
+        <option value="soon">Cette semaine</option>
+        <option value="urgent">Urgent !</option>
+      </select>
+    </div>
+    <div class="actions">
+      <button class="btn-cancel" id="btn-cancel">Annuler</button>
+      <button class="btn-send" id="btn-send">Envoyer ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CONFIG FIREBASE -->
+<div class="overlay" id="modal-config">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">⚙ Configuration</div>
+    <div class="config-note">
+      Pour la synchro entre vos deux téléphones, créez un projet gratuit sur
+      <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>
+      et copiez la config ici.
+    </div>
+    <div class="config-field"><label>API Key</label><input id="cfg-apiKey" placeholder="AIzaSy..."/></div>
+    <div class="config-field"><label>Project ID</label><input id="cfg-projectId" placeholder="mon-projet-123"/></div>
+    <div class="config-field"><label>App ID</label><input id="cfg-appId" placeholder="1:123:web:abc"/></div>
+    <button class="btn-config-save" onclick="saveConfig()">Sauvegarder & connecter</button>
+    <div style="text-align:center;margin-top:10px;">
+      <button style="background:none;border:none;font-size:13px;color:var(--text-hint);cursor:pointer" onclick="closeConfig()">Annuler</button>
+    </div>
+  </div>
+</div>
+
+<!-- FLASHCARD VIEW -->
+<div class="fc-view" id="fc-view">
+  <button class="fc-close" onclick="closeFlashcard()">✕</button>
+  <div class="fc-card" id="fc-card" onclick="revealAnswer()">
+    <div class="fc-question" id="fc-question">...</div>
+    <div class="fc-answer" id="fc-answer">...</div>
+    <div class="fc-hint" id="fc-hint">Appuie pour voir la réponse</div>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, query, orderBy }
+  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+window._fb = { db: null, unsub: null };
+
+const icons = { rappel:'🔔', tache:'✅', flashcard:'🃏', doux:'💜' };
+const iconBg = { rappel:'var(--amber-light)', tache:'var(--teal-light)', flashcard:'var(--purple-light)', doux:'var(--pink-light)' };
+const urgLabels = { today:['b-today','Aujourd\'hui'], soon:['b-soon','Cette semaine'], urgent:['b-urgent','Urgent !'] };
+
+let items = JSON.parse(localStorage.getItem('reveuse_items') || '[]');
+let selectedType = 'rappel';
+let currentRole = localStorage.getItem('reveuse_role') || 'sender';
+
+function save() { localStorage.setItem('reveuse_items', JSON.stringify(items)); }
+
+function render() {
+  const pending = items.filter(i => !i.done);
+  const done = items.filter(i => i.done);
+  document.getElementById('s-total').textContent = items.length;
+  document.getElementById('s-done').textContent = done.length;
+  document.getElementById('s-flash').textContent = items.filter(i => i.type === 'flashcard').length;
+
+  const pendEl = document.getElementById('list-pending');
+  const doneEl = document.getElementById('list-done');
+  const doneLabel = document.getElementById('done-label');
+
+  pendEl.innerHTML = pending.length === 0
+    ? '<div class="empty"><div class="empty-icon">✨</div><div class="empty-text">Aucun rappel en attente<br>Appuie sur <strong>+</strong> pour en créer un</div></div>'
+    : pending.map(cardHTML).join('');
+
+  if (done.length > 0) {
+    doneLabel.style.display = '';
+    doneEl.innerHTML = done.map(cardHTML).join('');
+  } else {
+    doneLabel.style.display = 'none';
+    doneEl.innerHTML = '';
+  }
+
+  document.querySelectorAll('.check').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = el.closest('[data-id]').dataset.id;
+      toggleDone(id);
+    });
+  });
+
+  document.querySelectorAll('.card[data-flash="true"]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      const item = items.find(i => i.id === id);
+      if (item) openFlashcard(item);
+    });
+  });
+}
+
+function cardHTML(item) {
+  const isFlash = item.type === 'flashcard';
+  const [bClass, bText] = isFlash ? ['b-flash','Flashcard'] : (urgLabels[item.urg] || ['b-today','Aujourd\'hui']);
+  const isDoux = item.type === 'doux';
+  return `<div class="card" data-id="${item.id}" data-flash="${isFlash}" style="cursor:${isFlash?'pointer':'default'}">
+    <div class="card-icon" style="background:${iconBg[item.type]||'var(--amber-light)'}">${icons[item.type]||'📌'}</div>
+    <div class="card-body">
+      <div class="card-title ${item.done?'done':''}">${item.msg}</div>
+      <div class="card-meta">${item.type.charAt(0).toUpperCase()+item.type.slice(1)} · ${item.time}</div>
+      <span class="badge ${isDoux?'b-doux':bClass}">${isDoux?'Mot doux':bText}</span>
+    </div>
+    ${!isFlash && !isDoux ? `<div class="check ${item.done?'done':''}" data-id="${item.id}"></div>` : ''}
+  </div>`;
+}
+
+async function toggleDone(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  save(); render();
+  if (window._fb.db) {
+    try { await updateDoc(doc(window._fb.db,'rappels',id), { done: item.done }); } catch(e) {}
+  }
+}
+
+window.setRole = function(role) {
+  currentRole = role;
+  localStorage.setItem('reveuse_role', role);
+  document.getElementById('role-sender').classList.toggle('active', role==='sender');
+  document.getElementById('role-receiver').classList.toggle('active', role==='receiver');
+  document.getElementById('app-sub').textContent = role==='sender' ? 'Mode Dylan — créer des rappels' : 'Mode elle — voir & cocher';
+  document.getElementById('fab-btn').style.display = role==='sender' ? '' : 'none';
+}
+
+window.openFlashcard = function(item) {
+  document.getElementById('fc-question').textContent = item.msg;
+  document.getElementById('fc-answer').textContent = item.answer || '(pas de réponse définie)';
+  document.getElementById('fc-answer').classList.remove('show');
+  document.getElementById('fc-hint').style.display = '';
+  document.getElementById('fc-view').classList.add('open');
+}
+window.revealAnswer = function() {
+  document.getElementById('fc-answer').classList.add('show');
+  document.getElementById('fc-hint').style.display = 'none';
+}
+window.closeFlashcard = function() {
+  document.getElementById('fc-view').classList.remove('open');
+}
+
+// FAB & Modal
+document.getElementById('fab-btn').addEventListener('click', () => {
+  document.getElementById('modal-new').classList.add('open');
+  document.getElementById('inp-msg').focus();
+});
+document.getElementById('btn-cancel').addEventListener('click', () => {
+  document.getElementById('modal-new').classList.remove('open');
+});
+document.getElementById('modal-new').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-new')) document.getElementById('modal-new').classList.remove('open');
+});
+
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+    selectedType = btn.dataset.t;
+    const isFlash = selectedType === 'flashcard';
+    const isDoux = selectedType === 'doux';
+    document.getElementById('field-answer').style.display = isFlash ? '' : 'none';
+    document.getElementById('field-urg').style.display = (isFlash||isDoux) ? 'none' : '';
+    document.getElementById('msg-label').textContent = isFlash ? 'Question (recto)' : isDoux ? 'Ton message' : 'Message';
+    document.getElementById('inp-msg').placeholder = isFlash
+      ? 'Ex : Quelle est la durée de la formation infirmière ?' : isDoux
+      ? 'Ex : Tu es une super maman, je t\'aime 💜' : 'Ex : N\'oublie pas de rappeler la CAF aujourd\'hui 💙';
+  });
+});
+
+document.getElementById('btn-send').addEventListener('click', async () => {
+  const msg = document.getElementById('inp-msg').value.trim();
+  if (!msg) return;
+  const urg = document.getElementById('inp-urg').value;
+  const answer = document.getElementById('inp-answer').value.trim();
+  const now = new Date();
+  const time = now.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  const newItem = { id: Date.now().toString(), type: selectedType, msg, urg, answer, time, done: false };
+
+  if (window._fb.db) {
+    try {
+      await addDoc(collection(window._fb.db,'rappels'), { ...newItem, createdAt: serverTimestamp() });
+    } catch(e) {
+      items.unshift(newItem); save(); render();
+    }
+  } else {
+    items.unshift(newItem); save(); render();
+  }
+  document.getElementById('modal-new').classList.remove('open');
+  document.getElementById('inp-msg').value = '';
+  document.getElementById('inp-answer').value = '';
+});
+
+// Config Firebase
+document.getElementById('avatar-btn').addEventListener('click', () => {
+  const cfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
+  if (cfg.apiKey) document.getElementById('cfg-apiKey').value = cfg.apiKey;
+  if (cfg.projectId) document.getElementById('cfg-projectId').value = cfg.projectId;
+  if (cfg.appId) document.getElementById('cfg-appId').value = cfg.appId;
+  document.getElementById('modal-config').classList.add('open');
+});
+window.closeConfig = function() { document.getElementById('modal-config').classList.remove('open'); }
+document.getElementById('modal-config').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-config')) closeConfig();
+});
+
+window.saveConfig = function() {
+  const cfg = {
+    apiKey: document.getElementById('cfg-apiKey').value.trim(),
+    projectId: document.getElementById('cfg-projectId').value.trim(),
+    appId: document.getElementById('cfg-appId').value.trim(),
+    authDomain: document.getElementById('cfg-projectId').value.trim()+'.firebaseapp.com',
+    storageBucket: document.getElementById('cfg-projectId').value.trim()+'.appspot.com',
+    messagingSenderId: '000000000000'
+  };
+  if (!cfg.apiKey || !cfg.projectId) return alert('API Key et Project ID requis');
+  localStorage.setItem('reveuse_fbcfg', JSON.stringify(cfg));
+  closeConfig();
+  initFirebase(cfg);
+}
+
+function initFirebase(cfg) {
+  try {
+    const app = initializeApp(cfg, 'reveuse-'+Date.now());
+    const db = getFirestore(app);
+    window._fb.db = db;
+    const q = query(collection(db,'rappels'), orderBy('createdAt','desc'));
+    if (window._fb.unsub) window._fb.unsub();
+    window._fb.unsub = onSnapshot(q, snap => {
+      items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      save(); render();
+    }, () => {
+      document.getElementById('sync-bar').className = 'sync-bar offline';
+      document.getElementById('sync-dot').className = 'sync-dot pulse';
+      document.getElementById('sync-text').textContent = 'Erreur Firebase — vérifiez la config';
+    });
+    document.getElementById('sync-bar').className = 'sync-bar connected';
+    document.getElementById('sync-dot').className = 'sync-dot';
+    document.getElementById('sync-text').textContent = 'Synchro active — temps réel ✓';
+  } catch(e) {
+    alert('Erreur Firebase : '+e.message);
+  }
+}
+
+// Init
+const savedCfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
+if (savedCfg.apiKey) initFirebase(savedCfg);
+setRole(currentRole);
+render();
+</script>
+
+<!-- PWA Service Worker -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
