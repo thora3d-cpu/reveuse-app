@@ -1,4 +1,4 @@
-const CACHE = 'reveuse-v1';
+const CACHE = 'reveuse-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -19,6 +19,7 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // Toujours chercher en réseau d'abord, cache en fallback
   e.respondWith(
     fetch(e.request)
       .then(res => {
