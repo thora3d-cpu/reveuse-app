@@ -251,7 +251,10 @@
       <div class="app-title">Pour ma <em>rêveuse</em> 💜</div>
       <div class="app-sub" id="app-sub">Rappels & flashcards</div>
     </div>
-    <div class="avatar" id="avatar-btn" style="cursor:pointer" title="Paramètres">⚙</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div class="avatar" id="avatar-display" style="background:var(--purple-light);color:var(--purple);border:none;font-size:18px;pointer-events:none;"><span id="avatar-initial">D</span></div>
+      <div class="avatar" id="avatar-btn" style="cursor:pointer;font-size:16px;" title="Paramètres">⚙</div>
+    </div>
   </div>
   <div class="dys-toggle-bar">
     <span style="font-size:11px;color:var(--text-hint);">Mode lecture</span>
@@ -277,7 +280,7 @@
 </div>
 
 <!-- LISTE -->
-<div class="section-label">En attente</div>
+<div class="section-label" id="label-pending">En attente</div>
 <div class="list" id="list-pending"></div>
 <div class="section-label" id="done-label" style="display:none">Fait ✓</div>
 <div class="list" id="list-done" style="padding-top:0"></div>
@@ -289,7 +292,7 @@
 <div class="overlay" id="modal-new">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <div class="sheet-title">Nouveau message</div>
+    <div class="sheet-title" id="sheet-title">Nouveau message</div>
     <div class="type-row" id="type-row">
       <button class="type-btn sel" data-t="rappel">🔔 Rappel</button>
       <button class="type-btn" data-t="tache">✅ Tâche</button>
@@ -393,8 +396,12 @@ let currentRole = localStorage.getItem('reveuse_role') || 'sender';
 function save() { localStorage.setItem('reveuse_items', JSON.stringify(items)); }
 
 function render() {
-  const pending = items.filter(i => !i.done);
-  const done = items.filter(i => i.done);
+  // Chaque utilisateur voit ce qui lui est destiné + ce qu'il a envoyé
+  const myRole = currentRole;
+  const otherRole = myRole === 'sender' ? 'receiver' : 'sender';
+  const myItems = items.filter(i => i.to === myRole || i.from === myRole);
+  const pending = myItems.filter(i => !i.done);
+  const done = myItems.filter(i => i.done);
   document.getElementById('s-total').textContent = items.length;
   document.getElementById('s-done').textContent = done.length;
   document.getElementById('s-flash').textContent = items.filter(i => i.type === 'flashcard').length;
@@ -438,9 +445,13 @@ function cardHTML(item) {
   const isDoux = item.type === 'doux';
   const alarmBadge = item.alarm ? `<span class="badge b-soon">⏰ ${item.alarm}</span>` : '';
   const calBadge = item.cal ? '<span class="badge b-flash">📅 Agenda</span>' : '';
+  const from = item.from || 'sender';
+  const fromLabel = from === 'sender' ? '💙 Dylan' : '💜 Elle';
+  const fromColor = from === 'sender' ? 'color:#185FA5' : 'color:#993556';
   return `<div class="card" data-id="${item.id}" data-flash="${isFlash}" style="cursor:${isFlash?'pointer':'default'}">
     <div class="card-icon" style="background:${iconBg[item.type]||'var(--amber-light)'}">${icons[item.type]||'📌'}</div>
     <div class="card-body">
+      <div style="font-size:11px;font-weight:500;margin-bottom:3px;${fromColor}">${fromLabel}</div>
       <div class="card-title ${item.done?'done':''}">${highlightKeywords(item.msg)}</div>
       <div class="card-meta">${item.type.charAt(0).toUpperCase()+item.type.slice(1)} · ${item.time}</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
@@ -467,8 +478,12 @@ window.setRole = function(role) {
   localStorage.setItem('reveuse_role', role);
   document.getElementById('role-sender').classList.toggle('active', role==='sender');
   document.getElementById('role-receiver').classList.toggle('active', role==='receiver');
-  document.getElementById('app-sub').textContent = role==='sender' ? 'Mode Dylan — créer des rappels' : 'Mode elle — voir & cocher';
-  document.getElementById('fab-btn').style.display = role==='sender' ? '' : 'none';
+  const names = { sender: 'Dylan', receiver: 'Elle' };
+  document.getElementById('app-sub').textContent = role==='sender' ? 'Mode Dylan — envoyer & recevoir' : 'Mode elle — envoyer & recevoir';
+  document.getElementById('avatar-initial').textContent = role==='sender' ? 'D' : '💜';
+  document.getElementById('fab-btn').style.display = '';
+  const t = document.getElementById('sheet-title');
+  if (t) t.textContent = role === 'sender' ? 'Message pour elle 💜' : 'Message pour Dylan 💙';
 }
 
 window.openFlashcard = function(item) {
@@ -569,7 +584,7 @@ document.getElementById('btn-send').addEventListener('click', async () => {
   const wantCal = document.getElementById('chk-cal').checked;
   const now = new Date();
   const time = now.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  const newItem = { id: Date.now().toString(), type: selectedType, msg, urg, answer, time, done: false, alarm: wantAlarm ? timeStr : null, cal: wantCal };
+  const newItem = { id: Date.now().toString(), type: selectedType, msg, urg, answer, time, done: false, alarm: wantAlarm ? timeStr : null, cal: wantCal, from: currentRole, to: currentRole === 'sender' ? 'receiver' : 'sender' };
 
   if (window._fb.db) {
     try {
