@@ -261,7 +261,7 @@
   </div>
   <div class="dys-toggle-bar">
     <span style="font-size:11px;color:var(--text-hint);">Mode lecture</span>
-    <button class="dys-toggle-btn" id="dys-btn" id="dys-btn-toggle">Aa dyslexie</button>
+    <button class="dys-toggle-btn" id="dys-btn">Aa dyslexie</button>
   </div>
   <div class="role-toggle">
     <button class="role-btn active" id="role-sender" >Moi (Dylan)</button>
@@ -381,7 +381,7 @@
 <!-- FLASHCARD VIEW -->
 <div class="fc-view" id="fc-view">
   <button class="fc-close" id="btn-fc-close">✕</button>
-  <div class="fc-card" id="fc-card" id="fc-card-inner">
+  <div class="fc-card" id="fc-card">
     <div class="fc-question" id="fc-question">...</div>
     <div class="fc-answer" id="fc-answer">...</div>
     <div class="fc-hint" id="fc-hint">Appuie pour voir la réponse</div>
@@ -406,6 +406,31 @@ let currentRole = localStorage.getItem('reveuse_role') || 'sender';
 
 function save() { localStorage.setItem('reveuse_items', JSON.stringify(items)); }
 
+// Event delegation — bound once, works for dynamically rendered cards
+function setupCardDelegation() {
+  const pendEl = document.getElementById('list-pending');
+  const doneEl = document.getElementById('list-done');
+  [pendEl, doneEl].forEach(container => {
+    if (!container) return;
+    container.addEventListener('click', e => {
+      // Handle checkbox clicks
+      const checkEl = e.target.closest('.check');
+      if (checkEl) {
+        e.stopPropagation();
+        const card = checkEl.closest('[data-id]');
+        if (card) toggleDone(card.dataset.id);
+        return;
+      }
+      // Handle flashcard clicks
+      const cardEl = e.target.closest('.card[data-flash="true"]');
+      if (cardEl) {
+        const item = items.find(i => i.id === cardEl.dataset.id);
+        if (item) openFlashcard(item);
+      }
+    });
+  });
+}
+
 function render() {
   // Chaque utilisateur voit ce qui lui est destiné + ce qu'il a envoyé
   const myRole = currentRole;
@@ -413,9 +438,9 @@ function render() {
   const myItems = items.filter(i => i.to === myRole || i.from === myRole);
   const pending = myItems.filter(i => !i.done);
   const done = myItems.filter(i => i.done);
-  document.getElementById('s-total').textContent = items.length;
+  document.getElementById('s-total').textContent = myItems.length;
   document.getElementById('s-done').textContent = done.length;
-  document.getElementById('s-flash').textContent = items.filter(i => i.type === 'flashcard').length;
+  document.getElementById('s-flash').textContent = myItems.filter(i => i.type === 'flashcard').length;
 
   const pendEl = document.getElementById('list-pending');
   const doneEl = document.getElementById('list-done');
@@ -433,21 +458,7 @@ function render() {
     doneEl.innerHTML = '';
   }
 
-  document.querySelectorAll('.check').forEach(el => {
-    el.addEventListener('click', e => {
-      e.stopPropagation();
-      const id = el.closest('[data-id]').dataset.id;
-      toggleDone(id);
-    });
-  });
-
-  document.querySelectorAll('.card[data-flash="true"]').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.dataset.id;
-      const item = items.find(i => i.id === id);
-      if (item) openFlashcard(item);
-    });
-  });
+  // Event delegation is set up once via setupCardDelegation() — no listeners added here
 }
 
 function cardHTML(item) {
@@ -480,7 +491,7 @@ async function toggleDone(id) {
   item.done = !item.done;
   save(); render();
   if (window._fb.db) {
-    try { await updateDoc(doc(window._fb.db,'rappels',id), { done: item.done }); } catch(e) {}
+    try { await updateDoc(doc(window._fb.db,'rappels',id), { done: item.done }); } catch(e) { console.warn('Sync Firebase échouée pour toggleDone:', e.message); }
   }
 }
 
@@ -533,6 +544,7 @@ document.querySelectorAll('.type-btn').forEach(btn => {
     const isDoux = selectedType === 'doux';
     document.getElementById('field-answer').style.display = isFlash ? '' : 'none';
     document.getElementById('field-urg').style.display = (isFlash||isDoux) ? 'none' : '';
+    document.getElementById('field-notifs').style.display = (isFlash||isDoux) ? 'none' : '';
     document.getElementById('msg-label').textContent = isFlash ? 'Question (recto)' : isDoux ? 'Ton message' : 'Message';
     document.getElementById('inp-msg').placeholder = isFlash
       ? 'Ex : Quelle est la durée de la formation infirmière ?' : isDoux
@@ -559,22 +571,15 @@ function updateNotifFields() {
 document.getElementById('chk-alarm').addEventListener('change', updateNotifFields);
 document.getElementById('chk-cal').addEventListener('change', updateNotifFields);
 
-// Masquer notifs pour flashcard et mot doux
-document.querySelectorAll('.type-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const isFlash = btn.dataset.t === 'flashcard';
-    const isDoux = btn.dataset.t === 'doux';
-    document.getElementById('field-notifs').style.display = (isFlash||isDoux) ? 'none' : '';
-  });
-});
-
 function openAlarm(timeStr) {
+  if (!timeStr || !timeStr.includes(':')) return;
   const [h, m] = timeStr.split(':');
   const url = `intent:#Intent;action=android.intent.action.SET_ALARM;S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent('Rappel 💜')};I.android.intent.extra.alarm.HOUR=${h};I.android.intent.extra.alarm.MINUTES=${m};Z.android.intent.extra.alarm.SKIP_UI=false;end`;
   window.location.href = url;
 }
 
 function openCalendar(msg, dateStr, timeStr) {
+  if (!dateStr || !dateStr.includes('-') || !timeStr || !timeStr.includes(':')) return;
   const [y,mo,d] = dateStr.split('-');
   const [h,m] = timeStr.split(':');
   const start = `${y}${mo}${d}T${h}${m}00`;
@@ -601,6 +606,7 @@ document.getElementById('btn-send').addEventListener('click', async () => {
     try {
       await addDoc(collection(window._fb.db,'rappels'), { ...newItem, createdAt: serverTimestamp() });
     } catch(e) {
+      console.warn('Ajout Firebase échoué, sauvegarde locale:', e.message);
       items.unshift(newItem); save(); render();
     }
   } else {
@@ -637,7 +643,7 @@ function sendWhatsAppNotif(item) {
 ${item.msg}${item.alarm ? '
 ⏰ ' + item.alarm : ''}`;
   const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(destPhone)}&text=${encodeURIComponent(msgWA)}&apikey=${destKey}`;
-  fetch(url, { mode: 'no-cors' }).catch(() => {});
+  fetch(url, { mode: 'no-cors' }).catch(e => console.warn('Notification WhatsApp échouée:', e.message));
 }
 
 // Config Firebase
@@ -731,7 +737,7 @@ function highlightKeywords(text) {
 function bindUI() {
   const $ = id => document.getElementById(id);
 
-  const dysBtn = $('dys-btn-toggle') || $('dys-btn');
+  const dysBtn = $('dys-btn');
   if (dysBtn) dysBtn.addEventListener('click', () => toggleDys());
 
   const roleSender = $('role-sender');
@@ -752,7 +758,7 @@ function bindUI() {
   const btnFcClose = $('btn-fc-close');
   if (btnFcClose) btnFcClose.addEventListener('click', () => closeFlashcard());
 
-  const fcCard = $('fc-card-inner') || $('fc-card');
+  const fcCard = $('fc-card');
   if (fcCard) fcCard.addEventListener('click', () => revealAnswer());
 }
 
@@ -770,6 +776,7 @@ window.trySavedConfig = function() {
 const savedCfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
 if (savedCfg.apiKey) initFirebase(savedCfg);
 bindUI();
+setupCardDelegation();
 applyDys();
 setRole(currentRole);
 render();
