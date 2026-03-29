@@ -12,6 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"/>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+  <style id="dys-font">@font-face{font-family:'OpenDyslexic';src:url('https://cdn.jsdelivr.net/npm/open-dyslexic@1.0.3/open-dyslexic-regular.otf');}</style>
 
   <style>
     :root {
@@ -53,6 +54,42 @@
         --pink-light: #1e0e18;
       }
     }
+
+    /* ── MODE DYS ── */
+    body.dys {
+      --bg: #fdf6e3;
+      --card: #fff9f0;
+      --text: #2d2000;
+      --text-sub: #6b5000;
+      --text-hint: #a08030;
+      --border: rgba(180,130,0,0.15);
+      --border-hover: rgba(180,130,0,0.3);
+      font-family: 'OpenDyslexic', 'DM Sans', sans-serif !important;
+      font-size: 18px;
+      line-height: 1.9;
+      letter-spacing: 0.04em;
+      word-spacing: 0.18em;
+    }
+    body.dys .app-title, body.dys .sheet-title { font-family: 'OpenDyslexic', sans-serif !important; }
+    body.dys .card { padding: 1.2rem 1.1rem; border-radius: 20px; }
+    body.dys .card-title { font-size: 17px; line-height: 1.8; letter-spacing: 0.03em; }
+    body.dys .card-icon { width: 52px; height: 52px; font-size: 26px; border-radius: 14px; }
+    body.dys .check { width: 32px; height: 32px; }
+    body.dys .check.done::after { width: 8px; height: 14px; }
+    body.dys .badge { font-size: 13px; padding: 4px 12px; }
+    body.dys .fab { width: 68px; height: 68px; font-size: 34px; }
+    body.dys .section-label { font-size: 13px; }
+    body.dys .stat-n { font-size: 28px; }
+    body.dys .stat-l { font-size: 13px; }
+    body.dys .keyword { background: #ffe066; border-radius: 4px; padding: 0 3px; font-weight: 500; }
+    body.dys .card-meta { font-size: 14px; }
+    body.dys .role-btn { font-size: 14px; padding: 7px 18px; }
+    body.dys input[type=time], body.dys input[type=date], body.dys textarea, body.dys select { font-size: 17px; padding: 12px; }
+    body.dys .type-btn { font-size: 15px; padding: 10px 16px; }
+    .dys-toggle-bar { display:flex; align-items:center; justify-content:flex-end; padding: 6px 1.5rem 0; gap:8px; }
+    .dys-toggle-btn { font-size:11px; padding:4px 10px; border-radius:20px; border:0.5px solid var(--border); background:transparent; color:var(--text-hint); cursor:pointer; font-family:inherit; transition:all 0.15s; }
+    .dys-toggle-btn.active { background:#ffe066; color:#2d2000; border-color:#e6cc00; font-weight:500; }
+
     * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html, body { height: 100%; }
     body {
@@ -187,6 +224,12 @@
     .config-field input:focus { border-color: var(--purple-mid); }
     .btn-config-save { width: 100%; padding: 10px; border-radius: var(--radius-sm); background: var(--purple); color: white; border: none; font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; margin-top: 4px; }
 
+    .notif-row { display:flex; gap:8px; }
+    .notif-toggle { display:flex; align-items:center; gap:6px; padding:8px 14px; border-radius:20px; border:1px solid var(--border); cursor:pointer; font-size:13px; color:var(--text-sub); background:var(--card); transition:all 0.15s; flex:1; justify-content:center; }
+    .notif-toggle:has(input:checked) { background:var(--purple-light); color:var(--purple); border-color:var(--purple-mid); font-weight:500; }
+    .notif-toggle input { display:none; }
+    .notif-icon { font-size:16px; }
+
     /* ── FLASHCARD VIEW ── */
     .fc-view { display: none; position: fixed; inset: 0; background: var(--bg); z-index: 200; padding: 2rem 1.5rem; flex-direction: column; align-items: center; justify-content: center; }
     .fc-view.open { display: flex; }
@@ -209,6 +252,10 @@
       <div class="app-sub" id="app-sub">Rappels & flashcards</div>
     </div>
     <div class="avatar" id="avatar-btn" style="cursor:pointer" title="Paramètres">⚙</div>
+  </div>
+  <div class="dys-toggle-bar">
+    <span style="font-size:11px;color:var(--text-hint);">Mode lecture</span>
+    <button class="dys-toggle-btn" id="dys-btn" onclick="toggleDys()">Aa dyslexie</button>
   </div>
   <div class="role-toggle">
     <button class="role-btn active" id="role-sender" onclick="setRole('sender')">Moi (Dylan)</button>
@@ -265,6 +312,31 @@
         <option value="urgent">Urgent !</option>
       </select>
     </div>
+
+    <div class="field" id="field-notifs">
+      <label>Notifications (optionnel)</label>
+      <div class="notif-row">
+        <label class="notif-toggle" id="toggle-alarm-wrap">
+          <input type="checkbox" id="chk-alarm"/>
+          <span class="notif-icon">⏰</span>
+          <span class="notif-label">Alarme</span>
+        </label>
+        <label class="notif-toggle" id="toggle-cal-wrap">
+          <input type="checkbox" id="chk-cal"/>
+          <span class="notif-icon">📅</span>
+          <span class="notif-label">Calendrier</span>
+        </label>
+      </div>
+      <div id="field-time" style="display:none; margin-top:10px;">
+        <label style="font-size:12px;color:var(--text-sub);display:block;margin-bottom:4px;">Heure</label>
+        <input type="time" id="inp-time" style="width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;"/>
+      </div>
+      <div id="field-date" style="display:none; margin-top:8px;">
+        <label style="font-size:12px;color:var(--text-sub);display:block;margin-bottom:4px;">Date</label>
+        <input type="date" id="inp-date" style="width:100%;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:15px;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);outline:none;"/>
+      </div>
+    </div>
+
     <div class="actions">
       <button class="btn-cancel" id="btn-cancel">Annuler</button>
       <button class="btn-send" id="btn-send">Envoyer ↗</button>
@@ -364,12 +436,17 @@ function cardHTML(item) {
   const isFlash = item.type === 'flashcard';
   const [bClass, bText] = isFlash ? ['b-flash','Flashcard'] : (urgLabels[item.urg] || ['b-today','Aujourd\'hui']);
   const isDoux = item.type === 'doux';
+  const alarmBadge = item.alarm ? `<span class="badge b-soon">⏰ ${item.alarm}</span>` : '';
+  const calBadge = item.cal ? '<span class="badge b-flash">📅 Agenda</span>' : '';
   return `<div class="card" data-id="${item.id}" data-flash="${isFlash}" style="cursor:${isFlash?'pointer':'default'}">
     <div class="card-icon" style="background:${iconBg[item.type]||'var(--amber-light)'}">${icons[item.type]||'📌'}</div>
     <div class="card-body">
-      <div class="card-title ${item.done?'done':''}">${item.msg}</div>
+      <div class="card-title ${item.done?'done':''}">${highlightKeywords(item.msg)}</div>
       <div class="card-meta">${item.type.charAt(0).toUpperCase()+item.type.slice(1)} · ${item.time}</div>
-      <span class="badge ${isDoux?'b-doux':bClass}">${isDoux?'Mot doux':bText}</span>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">
+        <span class="badge ${isDoux?'b-doux':bClass}">${isDoux?'Mot doux':bText}</span>
+        ${alarmBadge}${calBadge}
+      </div>
     </div>
     ${!isFlash && !isDoux ? `<div class="check ${item.done?'done':''}" data-id="${item.id}"></div>` : ''}
   </div>`;
@@ -437,14 +514,62 @@ document.querySelectorAll('.type-btn').forEach(btn => {
   });
 });
 
+// Afficher/masquer heure+date selon les checkboxes
+function updateNotifFields() {
+  const alarm = document.getElementById('chk-alarm').checked;
+  const cal = document.getElementById('chk-cal').checked;
+  const needTime = alarm || cal;
+  const needDate = cal;
+  document.getElementById('field-time').style.display = needTime ? '' : 'none';
+  document.getElementById('field-date').style.display = needDate ? '' : 'none';
+  if (needTime && !document.getElementById('inp-time').value) {
+    const d = new Date(); d.setMinutes(0); d.setSeconds(0);
+    document.getElementById('inp-time').value = d.toTimeString().slice(0,5);
+  }
+  if (needDate && !document.getElementById('inp-date').value) {
+    document.getElementById('inp-date').value = new Date().toISOString().slice(0,10);
+  }
+}
+document.getElementById('chk-alarm').addEventListener('change', updateNotifFields);
+document.getElementById('chk-cal').addEventListener('change', updateNotifFields);
+
+// Masquer notifs pour flashcard et mot doux
+document.querySelectorAll('.type-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const isFlash = btn.dataset.t === 'flashcard';
+    const isDoux = btn.dataset.t === 'doux';
+    document.getElementById('field-notifs').style.display = (isFlash||isDoux) ? 'none' : '';
+  });
+});
+
+function openAlarm(timeStr) {
+  const [h, m] = timeStr.split(':');
+  const url = `intent:#Intent;action=android.intent.action.SET_ALARM;S.android.intent.extra.alarm.MESSAGE=${encodeURIComponent('Rappel 💜')};I.android.intent.extra.alarm.HOUR=${h};I.android.intent.extra.alarm.MINUTES=${m};Z.android.intent.extra.alarm.SKIP_UI=false;end`;
+  window.location.href = url;
+}
+
+function openCalendar(msg, dateStr, timeStr) {
+  const [y,mo,d] = dateStr.split('-');
+  const [h,m] = timeStr.split(':');
+  const start = `${y}${mo}${d}T${h}${m}00`;
+  const endH = String(parseInt(h)+1).padStart(2,'0');
+  const end = `${y}${mo}${d}T${endH}${m}00`;
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('💜 '+msg)}&dates=${start}/${end}&details=${encodeURIComponent('Rappel depuis l\'app Pour ma rêveuse')}`;
+  window.open(url, '_blank');
+}
+
 document.getElementById('btn-send').addEventListener('click', async () => {
   const msg = document.getElementById('inp-msg').value.trim();
   if (!msg) return;
   const urg = document.getElementById('inp-urg').value;
   const answer = document.getElementById('inp-answer').value.trim();
+  const timeStr = document.getElementById('inp-time').value || '';
+  const dateStr = document.getElementById('inp-date').value || new Date().toISOString().slice(0,10);
+  const wantAlarm = document.getElementById('chk-alarm').checked;
+  const wantCal = document.getElementById('chk-cal').checked;
   const now = new Date();
   const time = now.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
-  const newItem = { id: Date.now().toString(), type: selectedType, msg, urg, answer, time, done: false };
+  const newItem = { id: Date.now().toString(), type: selectedType, msg, urg, answer, time, done: false, alarm: wantAlarm ? timeStr : null, cal: wantCal };
 
   if (window._fb.db) {
     try {
@@ -455,9 +580,18 @@ document.getElementById('btn-send').addEventListener('click', async () => {
   } else {
     items.unshift(newItem); save(); render();
   }
+
   document.getElementById('modal-new').classList.remove('open');
   document.getElementById('inp-msg').value = '';
   document.getElementById('inp-answer').value = '';
+  document.getElementById('chk-alarm').checked = false;
+  document.getElementById('chk-cal').checked = false;
+  document.getElementById('field-time').style.display = 'none';
+  document.getElementById('field-date').style.display = 'none';
+
+  // Ouvrir alarme et/ou calendrier
+  if (wantAlarm && timeStr) setTimeout(() => openAlarm(timeStr), 300);
+  if (wantCal && timeStr) setTimeout(() => openCalendar(msg, dateStr, timeStr), wantAlarm ? 800 : 300);
 });
 
 // Config Firebase
@@ -511,9 +645,33 @@ function initFirebase(cfg) {
   }
 }
 
+// Mode Dys
+let dysMode = localStorage.getItem('reveuse_dys') === '1';
+function applyDys() {
+  document.body.classList.toggle('dys', dysMode);
+  const btn = document.getElementById('dys-btn');
+  if (btn) { btn.classList.toggle('active', dysMode); btn.textContent = dysMode ? 'Aa ✓' : 'Aa dyslexie'; }
+}
+window.toggleDys = function() {
+  dysMode = !dysMode;
+  localStorage.setItem('reveuse_dys', dysMode ? '1' : '0');
+  applyDys(); render();
+}
+function highlightKeywords(text) {
+  if (!dysMode) return text;
+  // Met en évidence les mots importants (> 4 lettres, pas les mots outils)
+  const stop = new Set(['pour','avec','dans','mais','donc','alors','aussi','comme','plus','tout','bien','même','très','sans','sous','entre','vous','nous','elle','lui','les','des','une','que','qui','par','sur']);
+  return text.split(' ').map(w => {
+    const clean = w.replace(/[^a-zA-ZÀ-ÿ]/g,'');
+    return (clean.length > 4 && !stop.has(clean.toLowerCase()))
+      ? `<span class="keyword">${w}</span>` : w;
+  }).join(' ');
+}
+
 // Init
 const savedCfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
 if (savedCfg.apiKey) initFirebase(savedCfg);
+applyDys();
 setRole(currentRole);
 render();
 </script>
