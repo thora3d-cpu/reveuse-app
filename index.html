@@ -357,10 +357,18 @@
       <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a>
       et copiez la config ici.
     </div>
-    <div class="config-field"><label>API Key</label><input id="cfg-apiKey" placeholder="AIzaSy..."/></div>
-    <div class="config-field"><label>Project ID</label><input id="cfg-projectId" placeholder="mon-projet-123"/></div>
-    <div class="config-field"><label>App ID</label><input id="cfg-appId" placeholder="1:123:web:abc"/></div>
-    <button class="btn-config-save" onclick="saveConfig()">Sauvegarder & connecter</button>
+    <div class="config-field"><label>API Key Firebase</label><input id="cfg-apiKey" placeholder="AIzaSy..."/></div>
+    <div class="config-field"><label>Project ID Firebase</label><input id="cfg-projectId" placeholder="mon-projet-123"/></div>
+    <div class="config-field"><label>App ID Firebase</label><input id="cfg-appId" placeholder="1:123:web:abc"/></div>
+    <div style="border-top:0.5px solid var(--border);margin:1rem 0;"></div>
+    <div style="font-size:12px;font-weight:500;color:var(--text-sub);margin-bottom:8px;">📱 Notifications WhatsApp</div>
+    <div class="config-note" style="margin-bottom:10px;">Mon numéro WhatsApp (avec indicatif, ex: +33612345678) et ma clé CallMeBot</div>
+    <div class="config-field"><label>Mon numéro WhatsApp</label><input id="cfg-myPhone" placeholder="+33612345678"/></div>
+    <div class="config-field"><label>Ma clé CallMeBot</label><input id="cfg-myApikey" placeholder="1234567"/></div>
+    <div class="config-note" style="margin-top:8px;margin-bottom:10px;">Numéro et clé de l'autre personne (pour lui envoyer des notifs)</div>
+    <div class="config-field"><label>Son numéro WhatsApp</label><input id="cfg-herPhone" placeholder="+33698765432"/></div>
+    <div class="config-field"><label>Sa clé CallMeBot</label><input id="cfg-herApikey" placeholder="7654321"/></div>
+    <button class="btn-config-save" onclick="saveConfig()">Sauvegarder</button>
     <div style="text-align:center;margin-top:10px;">
       <button style="background:none;border:none;font-size:13px;color:var(--text-hint);cursor:pointer" onclick="closeConfig()">Annuler</button>
     </div>
@@ -604,10 +612,30 @@ document.getElementById('btn-send').addEventListener('click', async () => {
   document.getElementById('field-time').style.display = 'none';
   document.getElementById('field-date').style.display = 'none';
 
+  // Envoyer notification WhatsApp au destinataire
+  sendWhatsAppNotif(newItem);
+
   // Ouvrir alarme et/ou calendrier
   if (wantAlarm && timeStr) setTimeout(() => openAlarm(timeStr), 300);
   if (wantCal && timeStr) setTimeout(() => openCalendar(msg, dateStr, timeStr), wantAlarm ? 800 : 300);
 });
+
+function sendWhatsAppNotif(item) {
+  const waCfg = JSON.parse(localStorage.getItem('reveuse_wacfg')||'{}');
+  if (!waCfg.herPhone || !waCfg.herApikey) return;
+  // Envoyer au destinataire (l'autre personne)
+  const destPhone = item.to === 'receiver' ? waCfg.herPhone : waCfg.myPhone;
+  const destKey = item.to === 'receiver' ? waCfg.herApikey : waCfg.myApikey;
+  if (!destPhone || !destKey) return;
+  const typeLabel = { rappel:'🔔 Rappel', tache:'✅ Tâche', flashcard:'🃏 Flashcard', doux:'💜 Mot doux' };
+  const fromLabel = item.from === 'sender' ? 'Dylan' : 'Elle';
+  const msgWA = `${typeLabel[item.type]||'📌'} de ${fromLabel} :
+
+${item.msg}${item.alarm ? '
+⏰ ' + item.alarm : ''}`;
+  const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(destPhone)}&text=${encodeURIComponent(msgWA)}&apikey=${destKey}`;
+  fetch(url, { mode: 'no-cors' }).catch(() => {});
+}
 
 // Config Firebase
 document.getElementById('avatar-btn').addEventListener('click', () => {
@@ -615,6 +643,11 @@ document.getElementById('avatar-btn').addEventListener('click', () => {
   if (cfg.apiKey) document.getElementById('cfg-apiKey').value = cfg.apiKey;
   if (cfg.projectId) document.getElementById('cfg-projectId').value = cfg.projectId;
   if (cfg.appId) document.getElementById('cfg-appId').value = cfg.appId;
+  const waCfg = JSON.parse(localStorage.getItem('reveuse_wacfg')||'{}');
+  if (waCfg.myPhone) document.getElementById('cfg-myPhone').value = waCfg.myPhone;
+  if (waCfg.myApikey) document.getElementById('cfg-myApikey').value = waCfg.myApikey;
+  if (waCfg.herPhone) document.getElementById('cfg-herPhone').value = waCfg.herPhone;
+  if (waCfg.herApikey) document.getElementById('cfg-herApikey').value = waCfg.herApikey;
   document.getElementById('modal-config').classList.add('open');
 });
 window.closeConfig = function() { document.getElementById('modal-config').classList.remove('open'); }
@@ -633,6 +666,14 @@ window.saveConfig = function() {
   };
   if (!cfg.apiKey || !cfg.projectId) return alert('API Key et Project ID requis');
   localStorage.setItem('reveuse_fbcfg', JSON.stringify(cfg));
+  // Sauvegarder config WhatsApp
+  const waCfg = {
+    myPhone: document.getElementById('cfg-myPhone').value.trim(),
+    myApikey: document.getElementById('cfg-myApikey').value.trim(),
+    herPhone: document.getElementById('cfg-herPhone').value.trim(),
+    herApikey: document.getElementById('cfg-herApikey').value.trim()
+  };
+  localStorage.setItem('reveuse_wacfg', JSON.stringify(waCfg));
   closeConfig();
   initFirebase(cfg);
 }
