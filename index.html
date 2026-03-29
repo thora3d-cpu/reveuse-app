@@ -261,11 +261,11 @@
   </div>
   <div class="dys-toggle-bar">
     <span style="font-size:11px;color:var(--text-hint);">Mode lecture</span>
-    <button class="dys-toggle-btn" id="dys-btn" onclick="toggleDys()">Aa dyslexie</button>
+    <button class="dys-toggle-btn" id="dys-btn" id="dys-btn-toggle">Aa dyslexie</button>
   </div>
   <div class="role-toggle">
-    <button class="role-btn active" id="role-sender" onclick="setRole('sender')">Moi (Dylan)</button>
-    <button class="role-btn" id="role-receiver" onclick="setRole('receiver')">Elle</button>
+    <button class="role-btn active" id="role-sender" >Moi (Dylan)</button>
+    <button class="role-btn" id="role-receiver" >Elle</button>
   </div>
 </div>
 
@@ -277,7 +277,7 @@
 </div>
 
 <!-- SYNC STATUS -->
-<div class="sync-bar offline" id="sync-bar" onclick="trySavedConfig()" style="cursor:pointer">
+<div class="sync-bar offline" id="sync-bar"  style="cursor:pointer">
   <div class="sync-dot pulse" id="sync-dot"></div>
   <span id="sync-text">Mode local — appuie ici pour reconnecter</span>
 </div>
@@ -371,17 +371,17 @@
     <div class="config-note" style="margin-top:8px;margin-bottom:10px;">Numéro et clé de l'autre personne (pour lui envoyer des notifs)</div>
     <div class="config-field"><label>Son numéro WhatsApp</label><input id="cfg-herPhone" placeholder="+33698765432"/></div>
     <div class="config-field"><label>Sa clé CallMeBot</label><input id="cfg-herApikey" placeholder="7654321"/></div>
-    <button class="btn-config-save" onclick="saveConfig()">Sauvegarder</button>
+    <button class="btn-config-save" id="btn-config-save">Sauvegarder</button>
     <div style="text-align:center;margin-top:10px;">
-      <button style="background:none;border:none;font-size:13px;color:var(--text-hint);cursor:pointer" onclick="closeConfig()">Annuler</button>
+      <button style="background:none;border:none;font-size:13px;color:var(--text-hint);cursor:pointer" id="btn-config-close">Annuler</button>
     </div>
   </div>
 </div>
 
 <!-- FLASHCARD VIEW -->
 <div class="fc-view" id="fc-view">
-  <button class="fc-close" onclick="closeFlashcard()">✕</button>
-  <div class="fc-card" id="fc-card" onclick="revealAnswer()">
+  <button class="fc-close" id="btn-fc-close">✕</button>
+  <div class="fc-card" id="fc-card" id="fc-card-inner">
     <div class="fc-question" id="fc-question">...</div>
     <div class="fc-answer" id="fc-answer">...</div>
     <div class="fc-hint" id="fc-hint">Appuie pour voir la réponse</div>
@@ -727,6 +727,35 @@ function highlightKeywords(text) {
   }).join(' ');
 }
 
+// ── Listeners pour éléments HTML (onclick remplacés par addEventListener) ──
+function bindUI() {
+  const $ = id => document.getElementById(id);
+
+  const dysBtn = $('dys-btn-toggle') || $('dys-btn');
+  if (dysBtn) dysBtn.addEventListener('click', () => toggleDys());
+
+  const roleSender = $('role-sender');
+  if (roleSender) roleSender.addEventListener('click', () => setRole('sender'));
+
+  const roleReceiver = $('role-receiver');
+  if (roleReceiver) roleReceiver.addEventListener('click', () => setRole('receiver'));
+
+  const syncBar = $('sync-bar');
+  if (syncBar) syncBar.addEventListener('click', () => trySavedConfig());
+
+  const btnConfigSave = $('btn-config-save');
+  if (btnConfigSave) btnConfigSave.addEventListener('click', () => saveConfig());
+
+  const btnConfigClose = $('btn-config-close');
+  if (btnConfigClose) btnConfigClose.addEventListener('click', () => closeConfig());
+
+  const btnFcClose = $('btn-fc-close');
+  if (btnFcClose) btnFcClose.addEventListener('click', () => closeFlashcard());
+
+  const fcCard = $('fc-card-inner') || $('fc-card');
+  if (fcCard) fcCard.addEventListener('click', () => revealAnswer());
+}
+
 // Reconnecter Firebase si config sauvegardée
 window.trySavedConfig = function() {
   const cfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
@@ -740,6 +769,7 @@ window.trySavedConfig = function() {
 // Init
 const savedCfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
 if (savedCfg.apiKey) initFirebase(savedCfg);
+bindUI();
 applyDys();
 setRole(currentRole);
 render();
