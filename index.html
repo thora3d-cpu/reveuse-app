@@ -388,13 +388,42 @@
   </div>
 </div>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, serverTimestamp, query, orderBy }
-  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+<!-- App Script — Firebase chargé dynamiquement pour ne pas bloquer l'app -->
+<script>
+(function() {
+'use strict';
 
-window._fb = { db: null, unsub: null };
+// Firebase sera chargé dynamiquement — on stocke les fonctions ici
+window._fb = { db: null, unsub: null, loaded: false };
+var fbModules = {};
+
+async function loadFirebaseSDK() {
+  if (window._fb.loaded) return true;
+  try {
+    const [appMod, fsMod] = await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js')
+    ]);
+    fbModules = {
+      initializeApp: appMod.initializeApp,
+      getFirestore: fsMod.getFirestore,
+      collection: fsMod.collection,
+      onSnapshot: fsMod.onSnapshot,
+      addDoc: fsMod.addDoc,
+      updateDoc: fsMod.updateDoc,
+      doc: fsMod.doc,
+      serverTimestamp: fsMod.serverTimestamp,
+      query: fsMod.query,
+      orderBy: fsMod.orderBy
+    };
+    window._fb.loaded = true;
+    console.log('Firebase SDK chargé avec succès');
+    return true;
+  } catch(e) {
+    console.warn('Firebase SDK indisponible — mode local uniquement:', e.message);
+    return false;
+  }
+}
 
 const icons = { rappel:'🔔', tache:'✅', flashcard:'🃏', doux:'💜' };
 const iconBg = { rappel:'var(--amber-light)', tache:'var(--teal-light)', flashcard:'var(--purple-light)', doux:'var(--pink-light)' };
@@ -490,8 +519,8 @@ async function toggleDone(id) {
   if (!item) return;
   item.done = !item.done;
   save(); render();
-  if (window._fb.db) {
-    try { await updateDoc(doc(window._fb.db,'rappels',id), { done: item.done }); } catch(e) { console.warn('Sync Firebase échouée pour toggleDone:', e.message); }
+  if (window._fb.db && fbModules.updateDoc) {
+    try { await fbModules.updateDoc(fbModules.doc(window._fb.db,'rappels',id), { done: item.done }); } catch(e) { console.warn('Sync Firebase échouée pour toggleDone:', e.message); }
   }
 }
 
@@ -602,9 +631,9 @@ document.getElementById('btn-send').addEventListener('click', async () => {
   const time = now.toLocaleDateString('fr-FR',{day:'numeric',month:'short'})+' '+now.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   const newItem = { id: Date.now().toString(), type: selectedType, msg, urg, answer, time, done: false, alarm: wantAlarm ? timeStr : null, cal: wantCal, from: currentRole, to: currentRole === 'sender' ? 'receiver' : 'sender' };
 
-  if (window._fb.db) {
+  if (window._fb.db && fbModules.addDoc) {
     try {
-      await addDoc(collection(window._fb.db,'rappels'), { ...newItem, createdAt: serverTimestamp() });
+      await fbModules.addDoc(fbModules.collection(window._fb.db,'rappels'), { ...newItem, createdAt: fbModules.serverTimestamp() });
     } catch(e) {
       console.warn('Ajout Firebase échoué, sauvegarde locale:', e.message);
       items.unshift(newItem); save(); render();
@@ -638,10 +667,8 @@ function sendWhatsAppNotif(item) {
   if (!destPhone || !destKey) return;
   const typeLabel = { rappel:'🔔 Rappel', tache:'✅ Tâche', flashcard:'🃏 Flashcard', doux:'💜 Mot doux' };
   const fromLabel = item.from === 'sender' ? 'Dylan' : 'Elle';
-  const msgWA = `${typeLabel[item.type]||'📌'} de ${fromLabel} :
-
-${item.msg}${item.alarm ? '
-⏰ ' + item.alarm : ''}`;
+  const alarmLine = item.alarm ? '\n⏰ ' + item.alarm : '';
+  const msgWA = (typeLabel[item.type]||'📌') + ' de ' + fromLabel + ' :\n\n' + item.msg + alarmLine;
   const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(destPhone)}&text=${encodeURIComponent(msgWA)}&apikey=${destKey}`;
   fetch(url, { mode: 'no-cors' }).catch(e => console.warn('Notification WhatsApp échouée:', e.message));
 }
@@ -664,7 +691,7 @@ document.getElementById('modal-config').addEventListener('click', e => {
   if (e.target === document.getElementById('modal-config')) closeConfig();
 });
 
-window.saveConfig = function() {
+window.saveConfig = async function() {
   const cfg = {
     apiKey: document.getElementById('cfg-apiKey').value.trim(),
     projectId: document.getElementById('cfg-projectId').value.trim(),
@@ -684,17 +711,24 @@ window.saveConfig = function() {
   };
   localStorage.setItem('reveuse_wacfg', JSON.stringify(waCfg));
   closeConfig();
-  initFirebase(cfg);
+  await initFirebase(cfg);
 }
 
-function initFirebase(cfg) {
+async function initFirebase(cfg) {
+  const sdkReady = await loadFirebaseSDK();
+  if (!sdkReady) {
+    document.getElementById('sync-bar').className = 'sync-bar offline';
+    document.getElementById('sync-dot').className = 'sync-dot pulse';
+    document.getElementById('sync-text').textContent = 'Firebase indisponible — mode local';
+    return;
+  }
   try {
-    const app = initializeApp(cfg, 'reveuse-'+Date.now());
-    const db = getFirestore(app);
+    const app = fbModules.initializeApp(cfg, 'reveuse-'+Date.now());
+    const db = fbModules.getFirestore(app);
     window._fb.db = db;
-    const q = query(collection(db,'rappels'), orderBy('createdAt','desc'));
+    const q = fbModules.query(fbModules.collection(db,'rappels'), fbModules.orderBy('createdAt','desc'));
     if (window._fb.unsub) window._fb.unsub();
-    window._fb.unsub = onSnapshot(q, snap => {
+    window._fb.unsub = fbModules.onSnapshot(q, snap => {
       items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       save(); render();
     }, () => {
@@ -706,7 +740,10 @@ function initFirebase(cfg) {
     document.getElementById('sync-dot').className = 'sync-dot';
     document.getElementById('sync-text').textContent = 'Synchro active — temps réel ✓';
   } catch(e) {
-    alert('Erreur Firebase : '+e.message);
+    console.warn('Erreur Firebase:', e.message);
+    document.getElementById('sync-bar').className = 'sync-bar offline';
+    document.getElementById('sync-dot').className = 'sync-dot pulse';
+    document.getElementById('sync-text').textContent = 'Erreur Firebase — vérifiez la config';
   }
 }
 
@@ -763,23 +800,27 @@ function bindUI() {
 }
 
 // Reconnecter Firebase si config sauvegardée
-window.trySavedConfig = function() {
+window.trySavedConfig = async function() {
   const cfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
   if (cfg.apiKey) {
-    initFirebase(cfg);
+    await initFirebase(cfg);
   } else {
     document.getElementById('avatar-btn').click();
   }
 }
 
-// Init
-const savedCfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
-if (savedCfg.apiKey) initFirebase(savedCfg);
+// Init — l'UI se lance d'abord, Firebase se connecte ensuite (non bloquant)
 bindUI();
 setupCardDelegation();
 applyDys();
 setRole(currentRole);
 render();
+
+// Tenter la connexion Firebase en arrière-plan (ne bloque pas l'UI)
+var savedCfg = JSON.parse(localStorage.getItem('reveuse_fbcfg')||'{}');
+if (savedCfg.apiKey) initFirebase(savedCfg);
+
+})(); // fin IIFE
 </script>
 
 <!-- PWA Service Worker -->
